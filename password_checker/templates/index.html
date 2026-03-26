@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Checker</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=6) }}">
+
+    <!-- Font Awesome (for eye icon) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Password Strength Analyzer</h2>
+
+    <!-- Password Input with Eye Icon -->
+    <div class="password-box">
+        <input type="password" id="password" placeholder="Enter password" autocomplete="off">
+        <i class="fa-solid fa-eye" id="toggleIcon" onclick="togglePassword()"></i>
+    </div>
+
+    <button id="checkBtn">Check</button>
+
+    <h3 id="score">Strength Score: -</h3>
+
+    <div class="progress-bar">
+        <div id="progress" class="progress" style="width: 0%;"></div>
+    </div>
+
+    <h3>
+        Strength:
+        <span id="strength">-</span>
+    </h3>
+
+    <h3>Suggestions:</h3>
+    <ul id="feedback"></ul>
+
+</div>
+
+<script>
+
+// 👁 Toggle Password Visibility
+function togglePassword() {
+    const input = document.getElementById("password");
+    const icon = document.getElementById("toggleIcon");
+
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+    } else {
+        input.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+    }
+}
+
+// 🔍 Check Password
+document.getElementById("checkBtn").addEventListener("click", async function () {
+
+    const password = document.getElementById("password").value;
+
+    if (!password) {
+        alert("Please enter a password");
+        return;
+    }
+
+    try {
+        const response = await fetch("/check", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ password: password })
+        });
+
+        const data = await response.json();
+
+        // 🚨 Breach Alert
+        if (data.breached) {
+           alert("⚠️ This password has been found in real-world data breaches!");
+         }
+
+        // Score
+        document.getElementById("score").innerText =
+            "Strength Score: " + data.percentage + "%";
+
+        // Progress bar
+        const progress = document.getElementById("progress");
+        progress.style.width = data.percentage + "%";
+        progress.className = "progress " + data.strength.toLowerCase();
+
+        // Strength text
+        document.getElementById("strength").innerText = data.strength;
+
+        // Feedback
+        const feedbackList = document.getElementById("feedback");
+        feedbackList.innerHTML = "";
+
+        if (data.feedback.length === 0) {
+            feedbackList.innerHTML = "<li>✅ Strong password!</li>";
+        } else {
+            data.feedback.forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = item;
+                feedbackList.appendChild(li);
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Error connecting to server");
+    }
+
+});
+</script>
+
+</body>
+</html>

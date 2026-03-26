@@ -1,0 +1,150 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+}
+
+/* Center container */
+.container {
+    width: 400px;
+    margin: 80px auto;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 30px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+/* Heading */
+h2 {
+    margin-bottom: 20px;
+}
+
+/* Input */
+input {
+    padding: 12px;
+    width: 100%;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    margin-bottom: 15px;
+    font-size: 16px;
+}
+
+input:focus {
+    box-shadow: 0 0 10px #00c6ff;
+}
+
+/* Button */
+button {
+    padding: 12px 25px;
+    background: linear-gradient(45deg, #00c6ff, #0072ff);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+    font-size: 16px;
+    transition: 0.3s;
+    margin-top: 10px;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px #00c6ff;
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #ddd;
+    margin: 20px 0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Strength Colors */
+.weak {
+    background: #ff4d4d;
+    color: #ff4d4d;
+}
+
+.medium {
+    background: #ffa500;
+    color: #ffa500;
+}
+
+.strong {
+    background: #00ff99;
+    color: #00ff99;
+}
+
+/* Suggestions */
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    margin: 5px 0;
+    font-size: 14px;
+}
+
+/* Score */
+#score {
+    margin-top: 15px;
+}
+
+/* Strength Text */
+#strength {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* ========================= */
+/* 👁 PASSWORD BOX (EYE ICON) */
+/* ========================= */
+
+.password-box {
+    position: relative;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.password-box input {
+    width: 100%;
+    padding: 12px 45px 12px 12px; /* space for icon */
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+}
+
+/* Eye icon */
+.password-box i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #bbb;
+    font-size: 18px;
+    transition: 0.3s;
+}
+
+.password-box i:hover {
+    color: #00c6ff;
+}
