@@ -42,7 +42,7 @@
 
 <script>
 
-// 👁 Toggle Password Visibility
+// Toggle Password Visibility
 function togglePassword() {
     const input = document.getElementById("password");
     const icon = document.getElementById("toggleIcon");
@@ -58,7 +58,7 @@ function togglePassword() {
     }
 }
 
-// 🔍 Check Password
+// Check Password
 document.getElementById("checkBtn").addEventListener("click", async function () {
 
     const password = document.getElementById("password").value;
@@ -79,7 +79,7 @@ document.getElementById("checkBtn").addEventListener("click", async function () 
 
         const data = await response.json();
 
-        // 🚨 Breach Alert
+        // Breach Alert
         if (data.breached) {
            alert("⚠️ This password has been found in real-world data breaches!");
          }

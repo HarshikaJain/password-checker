@@ -3,10 +3,10 @@ import os
 
 app = Flask(__name__)
 
-# 🔐 Load password list (auto-detect file)
+# Load password list (auto-detect file)
 def load_passwords():
     try:
-        # ✅ Try both filenames (flexible)
+        # Try both filenames (flexible)
         file_path = None
 
         if os.path.exists("common_passwords.txt"):
@@ -31,19 +31,19 @@ def load_passwords():
 breached_passwords = load_passwords()
 
 
-# 🏠 Home route
+# Home route
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# 🔍 Password check API
+# Password check API
 @app.route("/check", methods=["POST"])
 def check_password():
 
     data = request.get_json()
 
-    # ✅ Safe input handling
+    # Safe input handling
     if not data or "password" not in data:
         return jsonify({"error": "No password provided"}), 400
 
@@ -53,37 +53,37 @@ def check_password():
     feedback = []
     breached = False
 
-    # 🔢 Length check
+    # Length check
     if len(password) >= 8:
         score += 1
     else:
         feedback.append("Password should be at least 8 characters")
 
-    # 🔤 Uppercase
+    # Uppercase
     if any(c.isupper() for c in password):
         score += 1
     else:
         feedback.append("Add uppercase letters")
 
-    # 🔡 Lowercase
+    # Lowercase
     if any(c.islower() for c in password):
         score += 1
     else:
         feedback.append("Add lowercase letters")
 
-    # 🔢 Digit
+    # Digit
     if any(c.isdigit() for c in password):
         score += 1
     else:
         feedback.append("Add numbers")
 
-    # 🔐 Special char
+    # Special char
     if any(c in "!@#$%^&*()" for c in password):
         score += 1
     else:
         feedback.append("Add special characters")
 
-    # 🚨 Breach check
+    # Breach check
     if password.lower() in breached_passwords:
         breached = True
         feedback.append(
@@ -91,11 +91,11 @@ def check_password():
         )
         score = 0  # override score
 
-    # 📊 Percentage
+    # Percentage
     total_checks = 5
     percentage = int((score / total_checks) * 100)
 
-    # 💪 Strength
+    # Strength
     if breached:
         strength = "Weak"
     elif percentage < 40:
@@ -105,7 +105,7 @@ def check_password():
     else:
         strength = "Strong"
 
-    # 📦 Response
+    # Response
     return jsonify({
         "percentage": percentage,
         "strength": strength,
@@ -113,6 +113,6 @@ def check_password():
         "breached": breached
     })
 
-# 🚀 Run server
+# Run server
 if __name__ == "__main__":
     app.run(debug=True)
