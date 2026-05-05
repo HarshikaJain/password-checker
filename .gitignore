@@ -1,0 +1,12 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+
+# Local Database (important!)
+instance/
+vault_analytics.db
+
+# OS files
+.DS_Store
+Thumbs.db
