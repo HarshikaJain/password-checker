@@ -3,46 +3,64 @@
 <head>
     <title>Password Checker</title>
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=7) }}">
-
-    <!-- Font Awesome (for eye icon) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=9) }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 </head>
 
 <body>
 
 <div class="container">
 
+    <!-- 🌗 Theme Toggle -->
+    <div class="theme-toggle">
+        <i class="fa-solid fa-moon" onclick="toggleTheme()"></i>
+    </div>
+
     <h2>Password Strength Analyzer</h2>
 
-    <!-- Password Input with Eye Icon -->
+    <!-- Password Input -->
     <div class="password-box">
         <input type="password" id="password" placeholder="Enter password" autocomplete="off">
         <i class="fa-solid fa-eye" id="toggleIcon" onclick="togglePassword()"></i>
     </div>
 
-    <button id="checkBtn">Check</button>
+    <!-- Buttons -->
+    <div class="btn-group">
+        <button id="checkBtn">Check</button>
+        <button onclick="generatePassword()">Generate</button>
+        <button onclick="copyPassword()">Copy</button>
+    </div>
 
     <h3 id="score">Strength Score: -</h3>
 
+    <!-- Progress -->
     <div class="progress-bar">
-        <div id="progress" class="progress" style="width: 0%;"></div>
+        <div id="progress" class="progress"></div>
     </div>
 
-    <h3>
-        Strength:
-        <span id="strength">-</span>
-    </h3>
+    <!-- Strength Badge -->
+    <h3>Strength: <span id="strength" class="badge">-</span></h3>
+
+    <h3 id="entropy">Entropy: -</h3>
 
     <h3>Suggestions:</h3>
     <ul id="feedback"></ul>
+
+    <!-- 📜 History -->
+    <h3>Recent Checks:</h3>
+    <ul id="history"></ul>
 
 </div>
 
 <script>
 
-// 👁️ Toggle Password Visibility
+// 🌗 THEME TOGGLE
+function toggleTheme() {
+    document.body.classList.toggle("light-mode");
+}
+
+// 👁️ PASSWORD TOGGLE
 function togglePassword() {
     const input = document.getElementById("password");
     const icon = document.getElementById("toggleIcon");
@@ -56,27 +74,68 @@ function togglePassword() {
     }
 }
 
-// 🔄 Update UI Function (reusable)
-function updateUI(data) {
+// 🔐 GENERATE PASSWORD
+function generatePassword() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+    let password = "";
 
-    // 🚨 Breach alert
-    if (data.breached) {
-        alert("⚠️ This password has been found in real-world data breaches!");
+    for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // Score
+    document.getElementById("password").value = password;
+    checkPassword(password);
+}
+
+// 📋 COPY PASSWORD
+function copyPassword() {
+    const input = document.getElementById("password");
+
+    if (!input.value) {
+        alert("Nothing to copy!");
+        return;
+    }
+
+    navigator.clipboard.writeText(input.value);
+    alert("Copied!");
+}
+
+// 📜 SAFE HISTORY (no password stored)
+function addToHistory(strength, percentage) {
+    const history = document.getElementById("history");
+
+    const li = document.createElement("li");
+    li.innerText = `Strength: ${strength} (${percentage}%)`;
+
+    history.prepend(li);
+
+    // Limit history to 5
+    if (history.children.length > 5) {
+        history.removeChild(history.lastChild);
+    }
+}
+
+// 🔄 UPDATE UI
+function updateUI(data) {
+
+    if (data.breached) {
+        alert("⚠️ This password has been found in data breaches!");
+    }
+
     document.getElementById("score").innerText =
         "Strength Score: " + data.percentage + "%";
 
-    // Progress bar
     const progress = document.getElementById("progress");
     progress.style.width = data.percentage + "%";
     progress.className = "progress " + data.strength.toLowerCase();
 
-    // Strength text
-    document.getElementById("strength").innerText = data.strength;
+    const strengthEl = document.getElementById("strength");
+    strengthEl.innerText = data.strength;
+    strengthEl.className = "badge " + data.strength.toLowerCase();
 
-    // Feedback
+    document.getElementById("entropy").innerText =
+        "Entropy: " + data.entropy + " bits";
+
     const feedbackList = document.getElementById("feedback");
     feedbackList.innerHTML = "";
 
@@ -89,55 +148,42 @@ function updateUI(data) {
             feedbackList.appendChild(li);
         });
     }
+
+    addToHistory(data.strength, data.percentage);
 }
 
-// 📡 API Call Function
+// 📡 API CALL
 async function checkPassword(password) {
 
     if (!password) return;
 
     try {
-        const response = await fetch("/check", {
+        const res = await fetch("/check", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ password })
         });
 
-        const data = await response.json();
+        const data = await res.json();
         updateUI(data);
 
-    } catch (error) {
-        console.error(error);
-        alert("Error connecting to server");
+    } catch {
+        alert("Server error");
     }
 }
 
-// 🟡 BUTTON CLICK (for manual check)
-document.getElementById("checkBtn").addEventListener("click", function () {
+// BUTTON
+document.getElementById("checkBtn").addEventListener("click", () => {
     const password = document.getElementById("password").value;
-
-    if (!password) {
-        alert("Please enter a password");
-        return;
-    }
-
+    if (!password) return alert("Enter password");
     checkPassword(password);
 });
 
-// 🟢 REAL-TIME CHECK (with debounce)
+// REAL-TIME
 let timeout;
-
 document.getElementById("password").addEventListener("input", function () {
-
-    const password = this.value;
-
     clearTimeout(timeout);
-
-    timeout = setTimeout(() => {
-        checkPassword(password);
-    }, 400); // delay = smoother UX
+    timeout = setTimeout(() => checkPassword(this.value), 400);
 });
 
 </script>

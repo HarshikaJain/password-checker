@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 import hashlib
 import requests
+import math
 
 app = Flask(__name__)
 
@@ -9,36 +10,52 @@ app = Flask(__name__)
 # -------------------------------
 def check_pwned(password):
     try:
-        # Convert password → SHA1 hash
         sha1 = hashlib.sha1(password.encode()).hexdigest().upper()
-
-        # Split hash (k-anonymity)
         prefix = sha1[:5]
         suffix = sha1[5:]
 
-        # API request
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
         response = requests.get(url)
 
         if response.status_code != 200:
             return False
 
-        # Compare suffix with returned hashes
         hashes = (line.split(":") for line in response.text.splitlines())
 
         for h, count in hashes:
             if h == suffix:
-                return True  # password found in breach
+                return True
 
         return False
 
-    except Exception as e:
-        print("Error checking breach:", e)
+    except:
         return False
 
 
 # -------------------------------
-# 🏠 HOME ROUTE
+# 🧠 ENTROPY CALCULATION
+# -------------------------------
+def calculate_entropy(password):
+    pool = 0
+
+    if any(c.islower() for c in password):
+        pool += 26
+    if any(c.isupper() for c in password):
+        pool += 26
+    if any(c.isdigit() for c in password):
+        pool += 10
+    if any(c in "!@#$%^&*()" for c in password):
+        pool += 32
+
+    if pool == 0:
+        return 0
+
+    entropy = len(password) * math.log2(pool)
+    return int(entropy)
+
+
+# -------------------------------
+# 🏠 HOME
 # -------------------------------
 @app.route("/")
 def home():
@@ -46,7 +63,7 @@ def home():
 
 
 # -------------------------------
-# 🔍 PASSWORD CHECK API
+# 🔍 PASSWORD CHECK
 # -------------------------------
 @app.route("/check", methods=["POST"])
 def check_password():
@@ -92,41 +109,51 @@ def check_password():
     else:
         feedback.append("Add special characters")
 
-    # 🚨 REAL BREACH CHECK
+    # 🧠 ENTROPY
+    entropy = calculate_entropy(password)
+
+    # 🚨 BREACH CHECK
     if password:
         breached = check_pwned(password)
-
         if breached:
             feedback.append(
                 "⚠️ This password has appeared in real-world data breaches. Do NOT use it."
             )
-            score = 0  # override score
+            score = 0
 
-    # 📊 Percentage
-    total_checks = 5
-    percentage = int((score / total_checks) * 100)
+    # 📊 RULE-BASED %
+    rule_percentage = int((score / 5) * 100)
 
-    # 💪 Strength
+    # 🧠 ENTROPY-BASED STRENGTH
+    if entropy < 40:
+        entropy_strength = "Weak"
+    elif entropy < 60:
+        entropy_strength = "Medium"
+    else:
+        entropy_strength = "Strong"
+
+    # 🎯 FINAL STRENGTH (combined logic)
     if breached:
         strength = "Weak"
-    elif percentage < 40:
-        strength = "Weak"
-    elif percentage < 70:
+    elif entropy_strength == "Strong" and rule_percentage > 80:
+        strength = "Strong"
+    elif entropy_strength == "Medium":
         strength = "Medium"
     else:
-        strength = "Strong"
+        strength = "Weak"
 
-    # 📦 Response
+    # 📦 RESPONSE
     return jsonify({
-        "percentage": percentage,
+        "percentage": rule_percentage,
         "strength": strength,
+        "entropy": entropy,
         "feedback": feedback,
         "breached": breached
     })
 
 
 # -------------------------------
-# 🚀 RUN SERVER
+# 🚀 RUN
 # -------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
