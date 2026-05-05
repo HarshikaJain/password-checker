@@ -10,18 +10,39 @@ body {
     font-family: 'Segoe UI', sans-serif;
     background: linear-gradient(135deg, #141e30, #243b55);
     color: white;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 🛡️ FIX FOR DUAL EYE ICONS (Targets Chrome, Edge, Safari) */
+input::-ms-reveal,
+input::-ms-clear {
+    display: none; /* Removes Edge/IE default eye */
+}
+
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+    display: none !important; /* Removes Chrome auto-fill eye */
+    visibility: hidden;
+    pointer-events: none;
 }
 
 /* Container */
 .container {
     width: 400px;
-    margin: 80px auto;
     background: rgba(255, 255, 255, 0.08);
     padding: 30px;
     border-radius: 15px;
     backdrop-filter: blur(10px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     text-align: center;
+    transition: 0.3s ease;
+}
+
+.container:hover {
+    transform: translateY(-5px);
 }
 
 /* Heading */
@@ -29,32 +50,63 @@ h2 {
     margin-bottom: 20px;
 }
 
-/* Input */
-input {
-    padding: 12px;
+/* Password box positioning */
+.password-box {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+/* Input Styling */
+.password-box input {
+    padding: 12px 45px 12px 12px; /* Extra right padding so text doesn't overlap eye */
     width: 100%;
     border-radius: 8px;
     border: none;
     outline: none;
-    margin-bottom: 15px;
     font-size: 16px;
+    background: white;
+    color: #333;
 }
 
-input:focus {
+.password-box input:focus {
     box-shadow: 0 0 10px #00c6ff;
 }
 
-/* Button */
+/* 👁️ Custom Eye Icon Styling */
+.password-box i {
+    position: absolute;
+    right: 15px; /* Fixed distance from right edge */
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+    font-size: 18px;
+    transition: 0.3s;
+    z-index: 10; /* Ensures it stays above the input field */
+}
+
+.password-box i:hover {
+    color: #00c6ff;
+}
+
+/* Buttons */
+.btn-group {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
 button {
-    padding: 12px 25px;
+    padding: 10px 18px;
     background: linear-gradient(45deg, #00c6ff, #0072ff);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     color: white;
-    font-size: 16px;
+    font-size: 14px;
     transition: 0.3s;
-    margin-top: 10px;
 }
 
 button:hover {
@@ -65,146 +117,61 @@ button:hover {
 /* Progress Bar */
 .progress-bar {
     width: 100%;
-    height: 20px;
-    background: #ddd;
-    margin: 20px 0;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 15px 0;
     border-radius: 10px;
     overflow: hidden;
 }
 
 .progress {
     height: 100%;
+    width: 0%;
     transition: width 0.5s ease-in-out;
 }
 
 /* Strength Colors */
-.weak {
-    background: #ff4d4d;
-    color: #ff4d4d;
-}
+.weak { background: #ff4d4d; }
+.medium { background: #ffa500; }
+.strong { background: #00ff99; }
 
-.medium {
-    background: #ffa500;
-    color: #ffa500;
-}
-
-.strong {
-    background: #00ff99;
-    color: #00ff99;
-}
-
-/* Suggestions */
+/* Feedback & History */
 ul {
     list-style: none;
     padding: 0;
+    text-align: left;
 }
 
 li {
     margin: 6px 0;
+    font-size: 13px;
+}
+
+#entropy, #score {
+    margin-top: 10px;
     font-size: 14px;
 }
 
-/* Score */
-#score {
-    margin-top: 15px;
-}
-
-/* Strength text */
-#strength {
+.badge {
+    padding: 3px 8px;
+    border-radius: 5px;
     font-weight: bold;
-    font-size: 18px;
+    text-transform: uppercase;
 }
 
-/* Password box with eye icon */
-.password-box {
-    position: relative;
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-.password-box input {
-    width: 100%;
-    padding: 12px 45px 12px 12px;
-    border-radius: 8px;
-    border: none;
-    font-size: 16px;
-}
-
-/* Eye icon */
-.password-box i {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    color: #bbb;
-    font-size: 18px;
-    transition: 0.3s;
-}
-
-.password-box i:hover {
-    color: #00c6ff;
-}
-
-/* Button group (if used later) */
-.btn-group {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.btn-group button {
-    padding: 10px 15px;
-}
-
-/* Entropy text */
-#entropy {
-    margin-top: 10px;
-    font-size: 16px;
-}
-
-/* Light mode (optional feature) */
+/* Light mode support */
 .light-mode {
-    background: #f5f5f5;
-    color: black;
+    background: #f0f2f5;
+    color: #141e30;
 }
 
 .light-mode .container {
     background: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
-/* Theme toggle */
 .theme-toggle {
     text-align: right;
+    margin-bottom: 10px;
     cursor: pointer;
-}
-
-/* Badge (optional enhancement) */
-.badge {
-    padding: 5px 10px;
-    border-radius: 10px;
-}
-
-.badge.weak {
-    background: red;
-}
-
-.badge.medium {
-    background: orange;
-}
-
-.badge.strong {
-    background: green;
-}
-
-/* History list */
-#history li {
-    font-size: 14px;
-}
-
-/* ✨ Small UI enhancement */
-.container:hover {
-    transform: translateY(-5px);
-    transition: 0.3s ease;
 }
