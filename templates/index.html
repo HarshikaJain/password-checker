@@ -1,40 +1,48 @@
 <!DOCTYPE html> 
 <html>
 <head>
-    <title>Password Checker</title>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=10) }}">
+    <title>ShieldGuard | Password Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=11) }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 </head>
 
 <body>
 
 <div class="container">
-
     <!-- 🌗 Theme Toggle -->
     <div class="theme-toggle">
-        <i class="fa-solid fa-moon" onclick="toggleTheme()"></i>
+        <i class="fa-solid fa-moon" id="themeIcon" onclick="toggleTheme()"></i>
     </div>
 
-    <h2>Password Strength Analyzer</h2>
+    <h2>Password Security Analyzer</h2>
+    <p style="font-size: 0.8rem; color: #bbb; margin-bottom: 20px;">CSE-IEP Security Audit Tool</p>
 
     <!-- Password Input -->
     <div class="password-box">
-        <input type="password" id="password" placeholder="Enter password" autocomplete="off">
+        <input type="password" id="password" placeholder="Enter password to analyze..." autocomplete="off">
         <i class="fa-solid fa-eye" id="toggleIcon" onclick="togglePassword()"></i>
     </div>
 
     <!-- Buttons -->
     <div class="btn-group">
-        <button id="checkBtn">Check</button>
-        <button onclick="generatePassword()">Generate</button>
-        <button onclick="copyPassword()">Copy</button>
+        <button id="checkBtn">Analyze</button>
+        <button onclick="generatePassword()">Gen Smart</button>
+        <button onclick="copyPassword()"><i class="fa-solid fa-copy"></i></button>
     </div>
 
-    <h3 id="score">Strength Score: -</h3>
+    <!-- Level 10: Crack Time & Entropy Metrics -->
+    <div id="metrics-container" style="display: flex; justify-content: space-around; margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+        <div style="text-align: center;">
+            <small style="color: #00c6ff; display: block;">TIME TO CRACK</small>
+            <strong id="crackTime">-</strong>
+        </div>
+        <div style="text-align: center;">
+            <small style="color: #00c6ff; display: block;">ENTROPY</small>
+            <strong id="entropyValue">-</strong>
+        </div>
+    </div>
 
-    <!-- Progress -->
+    <!-- Progress Bar -->
     <div class="progress-bar">
         <div id="progress" class="progress"></div>
     </div>
@@ -42,170 +50,139 @@
     <!-- Strength Badge -->
     <h3>Strength: <span id="strength" class="badge">-</span></h3>
 
-    <h3 id="entropy">Entropy: -</h3>
+    <div style="text-align: left; margin-top: 20px;">
+        <h4><i class="fa-solid fa-list-check"></i> Security Insights:</h4>
+        <ul id="feedback" style="margin-top: 10px; min-height: 50px;"></ul>
+    </div>
 
-    <h3>Suggestions:</h3>
-    <ul id="feedback"></ul>
-
-    <!-- 📜 History -->
-    <h3>Recent Checks:</h3>
-    <ul id="history"></ul>
+    <!-- 📜 Session History -->
+    <h4 style="margin-top: 20px; text-align: left;"><i class="fa-solid fa-clock-rotate-left"></i> Recent Audits:</h4>
+    <ul id="history" style="text-align: left; opacity: 0.8; font-size: 0.85rem;"></ul>
 
 </div>
 
 <script>
-
 // 🌗 THEME TOGGLE
 function toggleTheme() {
     document.body.classList.toggle("light-mode");
+    const icon = document.getElementById("themeIcon");
+    icon.classList.toggle("fa-moon");
+    icon.classList.toggle("fa-sun");
 }
 
 // 👁️ PASSWORD TOGGLE
 function togglePassword() {
     const input = document.getElementById("password");
     const icon = document.getElementById("toggleIcon");
-
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.replace("fa-eye", "fa-eye-slash");
-    } else {
-        input.type = "password";
-        icon.classList.replace("fa-eye-slash", "fa-eye");
-    }
+    const isPass = input.type === "password";
+    input.type = isPass ? "text" : "password";
+    icon.className = isPass ? "fa-solid fa-eye-slash" : "fa-solid fa-eye";
 }
 
-// 🔐 GENERATE PASSWORD
-function generatePassword() {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
-    let password = "";
-
-    for (let i = 0; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+// 🔐 GENERATE PASSWORD (Now fetches from Backend for Level 10 consistency)
+async function generatePassword() {
+    try {
+        const res = await fetch("/generate");
+        const data = await res.json();
+        document.getElementById("password").value = data.password;
+        checkPassword(data.password);
+    } catch {
+        // Fallback if API fails
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+        let pass = Array.from({length: 16}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+        document.getElementById("password").value = pass;
+        checkPassword(pass);
     }
-
-    document.getElementById("password").value = password;
-    checkPassword(password);
 }
 
 // 📋 COPY PASSWORD
 function copyPassword() {
     const input = document.getElementById("password");
-
-    if (!input.value) {
-        alert("Nothing to copy!");
-        return;
-    }
-
+    if (!input.value) return;
     navigator.clipboard.writeText(input.value);
-    alert("Copied!");
+    
+    // Visual feedback
+    const btn = event.currentTarget;
+    const original = btn.innerHTML;
+    btn.innerHTML = "Saved!";
+    setTimeout(() => btn.innerHTML = original, 1000);
 }
 
-// 📜 SAFE HISTORY (no password stored)
-function addToHistory(strength, percentage) {
-    const history = document.getElementById("history");
-
-    const li = document.createElement("li");
-    li.innerText = `Strength: ${strength} (${percentage}%)`;
-
-    history.prepend(li);
-
-    // Limit history to 5
-    if (history.children.length > 5) {
-        history.removeChild(history.lastChild);
-    }
-}
-
-// 🔄 UPDATE UI
+// 🔄 CONSOLIDATED UI UPDATE (LEVEL 10)
 function updateUI(data) {
+    // 1. Update Metrics
+    document.getElementById("crackTime").innerText = data.crack_time || "Instant";
+    document.getElementById("entropyValue").innerText = (data.entropy || 0) + " bits";
+    
+    // 2. Strength Badge & Color
+    const str = data.strength || "Weak";
+    const strengthEl = document.getElementById("strength");
+    strengthEl.innerText = str;
+    strengthEl.className = "badge " + str.toLowerCase();
 
-    if (data.breached) {
-        alert("⚠️ This password has been found in data breaches!");
-    }
-
-    document.getElementById("score").innerText =
-        "Strength Score: " + data.percentage + "%";
-
+    // 3. Progress Bar
     const progress = document.getElementById("progress");
     progress.style.width = data.percentage + "%";
-    progress.className = "progress " + data.strength.toLowerCase();
+    progress.className = "progress " + str.toLowerCase();
 
-    const strengthEl = document.getElementById("strength");
-    strengthEl.innerText = data.strength;
-    strengthEl.className = "badge " + data.strength.toLowerCase();
-
-    document.getElementById("entropy").innerText =
-        "Entropy: " + data.entropy + " bits";
-
+    // 4. Feedback Engine
     const feedbackList = document.getElementById("feedback");
     feedbackList.innerHTML = "";
-
+    
     if (data.feedback.length === 0) {
-        feedbackList.innerHTML = "<li>✅ Strong password!</li>";
+        feedbackList.innerHTML = "<li style='color: #00ff99'>✅ Architecture is secure.</li>";
     } else {
         data.feedback.forEach(item => {
             const li = document.createElement("li");
-            li.innerText = item;
+            li.innerHTML = item;
             feedbackList.appendChild(li);
         });
     }
 
-    addToHistory(data.strength, data.percentage);
+    // 5. Audit History
+    addToHistory(str, data.percentage);
+}
+
+// 📜 SAFE HISTORY
+function addToHistory(strength, percentage) {
+    const history = document.getElementById("history");
+    const li = document.createElement("li");
+    li.style.marginBottom = "5px";
+    li.innerHTML = `<span class="${strength.toLowerCase()}">${strength}</span> audit completed (${percentage}%)`;
+    
+    history.prepend(li);
+    if (history.children.length > 5) history.removeChild(history.lastChild);
 }
 
 // 📡 API CALL
 async function checkPassword(password) {
-
     if (!password) return;
-
     try {
         const res = await fetch("/check", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ password })
         });
-
         const data = await res.json();
         updateUI(data);
-
     } catch {
-        alert("Server error");
+        console.error("Analysis engine offline");
     }
 }
 
-// BUTTON
+// EVENT LISTENERS
 document.getElementById("checkBtn").addEventListener("click", () => {
-    const password = document.getElementById("password").value;
-    if (!password) return alert("Enter password");
-    checkPassword(password);
+    const val = document.getElementById("password").value;
+    if (!val) return alert("Please enter a password");
+    checkPassword(val);
 });
 
-// REAL-TIME
-let timeout;
-document.getElementById("password").addEventListener("input", function () {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => checkPassword(this.value), 400);
+// Real-time Debouncing (Saves Server Resources)
+let debounce;
+document.getElementById("password").addEventListener("input", function() {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => checkPassword(this.value), 400);
 });
-
-function updateUI(data) {
-    // Strength Badge
-    const strengthEl = document.getElementById("strength");
-    strengthEl.innerText = data.strength;
-    strengthEl.className = "badge " + data.strength.toLowerCase();
-
-    // Entropy & Crack Time
-    document.getElementById("entropy").innerText = `Entropy: ${data.entropy} bits`;
-    document.getElementById("score").innerText = `Time to Crack: ${data.crack_time}`;
-
-    // Progress Bar
-    const progress = document.getElementById("progress");
-    progress.style.width = data.percentage + "%";
-    progress.className = "progress " + data.strength.toLowerCase();
-
-    // Smart Feedback
-    const feedbackList = document.getElementById("feedback");
-    feedbackList.innerHTML = data.feedback.map(item => `<li>${item}</li>`).join('');
-}
-
 </script>
 
 </body>
