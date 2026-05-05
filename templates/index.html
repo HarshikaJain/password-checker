@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
     <title>Password Checker</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=6) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=7) }}">
 
     <!-- Font Awesome (for eye icon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
 </head>
+
 <body>
 
 <div class="container">
@@ -42,31 +42,59 @@
 
 <script>
 
-// Toggle Password Visibility
+// 👁️ Toggle Password Visibility
 function togglePassword() {
     const input = document.getElementById("password");
     const icon = document.getElementById("toggleIcon");
 
     if (input.type === "password") {
         input.type = "text";
-        icon.classList.remove("fa-eye");
-        icon.classList.add("fa-eye-slash");
+        icon.classList.replace("fa-eye", "fa-eye-slash");
     } else {
         input.type = "password";
-        icon.classList.remove("fa-eye-slash");
-        icon.classList.add("fa-eye");
+        icon.classList.replace("fa-eye-slash", "fa-eye");
     }
 }
 
-// Check Password
-document.getElementById("checkBtn").addEventListener("click", async function () {
+// 🔄 Update UI Function (reusable)
+function updateUI(data) {
 
-    const password = document.getElementById("password").value;
-
-    if (!password) {
-        alert("Please enter a password");
-        return;
+    // 🚨 Breach alert
+    if (data.breached) {
+        alert("⚠️ This password has been found in real-world data breaches!");
     }
+
+    // Score
+    document.getElementById("score").innerText =
+        "Strength Score: " + data.percentage + "%";
+
+    // Progress bar
+    const progress = document.getElementById("progress");
+    progress.style.width = data.percentage + "%";
+    progress.className = "progress " + data.strength.toLowerCase();
+
+    // Strength text
+    document.getElementById("strength").innerText = data.strength;
+
+    // Feedback
+    const feedbackList = document.getElementById("feedback");
+    feedbackList.innerHTML = "";
+
+    if (data.feedback.length === 0) {
+        feedbackList.innerHTML = "<li>✅ Strong password!</li>";
+    } else {
+        data.feedback.forEach(item => {
+            const li = document.createElement("li");
+            li.innerText = item;
+            feedbackList.appendChild(li);
+        });
+    }
+}
+
+// 📡 API Call Function
+async function checkPassword(password) {
+
+    if (!password) return;
 
     try {
         const response = await fetch("/check", {
@@ -74,48 +102,44 @@ document.getElementById("checkBtn").addEventListener("click", async function () 
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ password: password })
+            body: JSON.stringify({ password })
         });
 
         const data = await response.json();
-
-        // Breach Alert
-        if (data.breached) {
-           alert("⚠️ This password has been found in real-world data breaches!");
-         }
-
-        // Score
-        document.getElementById("score").innerText =
-            "Strength Score: " + data.percentage + "%";
-
-        // Progress bar
-        const progress = document.getElementById("progress");
-        progress.style.width = data.percentage + "%";
-        progress.className = "progress " + data.strength.toLowerCase();
-
-        // Strength text
-        document.getElementById("strength").innerText = data.strength;
-
-        // Feedback
-        const feedbackList = document.getElementById("feedback");
-        feedbackList.innerHTML = "";
-
-        if (data.feedback.length === 0) {
-            feedbackList.innerHTML = "<li>✅ Strong password!</li>";
-        } else {
-            data.feedback.forEach(item => {
-                const li = document.createElement("li");
-                li.innerText = item;
-                feedbackList.appendChild(li);
-            });
-        }
+        updateUI(data);
 
     } catch (error) {
         console.error(error);
         alert("Error connecting to server");
     }
+}
 
+// 🟡 BUTTON CLICK (for manual check)
+document.getElementById("checkBtn").addEventListener("click", function () {
+    const password = document.getElementById("password").value;
+
+    if (!password) {
+        alert("Please enter a password");
+        return;
+    }
+
+    checkPassword(password);
 });
+
+// 🟢 REAL-TIME CHECK (with debounce)
+let timeout;
+
+document.getElementById("password").addEventListener("input", function () {
+
+    const password = this.value;
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(() => {
+        checkPassword(password);
+    }, 400); // delay = smoother UX
+});
+
 </script>
 
 </body>
