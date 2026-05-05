@@ -1,49 +1,58 @@
 from flask import Flask, render_template, request, jsonify
-import os
+import hashlib
+import requests
 
 app = Flask(__name__)
 
-# Load password list (auto-detect file)
-def load_passwords():
+# -------------------------------
+# 🔐 REAL BREACH CHECK (HIBP API)
+# -------------------------------
+def check_pwned(password):
     try:
-        # Try both filenames (flexible)
-        file_path = None
+        # Convert password → SHA1 hash
+        sha1 = hashlib.sha1(password.encode()).hexdigest().upper()
 
-        if os.path.exists("common_passwords.txt"):
-            file_path = "common_passwords.txt"
-        elif os.path.exists("rockyou.txt"):
-            file_path = "rockyou.txt"
+        # Split hash (k-anonymity)
+        prefix = sha1[:5]
+        suffix = sha1[5:]
 
-        if not file_path:
-            raise FileNotFoundError("No password file found")
+        # API request
+        url = f"https://api.pwnedpasswords.com/range/{prefix}"
+        response = requests.get(url)
 
-        with open(file_path, "r", encoding="latin-1") as file:
-            passwords = set(line.strip().lower() for line in file if line.strip())
+        if response.status_code != 200:
+            return False
 
-        print(f"✅ Loaded {len(passwords)} passwords from {file_path}")
-        return passwords
+        # Compare suffix with returned hashes
+        hashes = (line.split(":") for line in response.text.splitlines())
+
+        for h, count in hashes:
+            if h == suffix:
+                return True  # password found in breach
+
+        return False
 
     except Exception as e:
-        print("⚠️ Error loading password file:", e)
-        return set()
-
-# Load once at startup
-breached_passwords = load_passwords()
+        print("Error checking breach:", e)
+        return False
 
 
-# Home route
+# -------------------------------
+# 🏠 HOME ROUTE
+# -------------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# Password check API
+# -------------------------------
+# 🔍 PASSWORD CHECK API
+# -------------------------------
 @app.route("/check", methods=["POST"])
 def check_password():
 
     data = request.get_json()
 
-    # Safe input handling
     if not data or "password" not in data:
         return jsonify({"error": "No password provided"}), 400
 
@@ -53,49 +62,51 @@ def check_password():
     feedback = []
     breached = False
 
-    # Length check
+    # 🔢 Length
     if len(password) >= 8:
         score += 1
     else:
         feedback.append("Password should be at least 8 characters")
 
-    # Uppercase
+    # 🔤 Uppercase
     if any(c.isupper() for c in password):
         score += 1
     else:
         feedback.append("Add uppercase letters")
 
-    # Lowercase
+    # 🔡 Lowercase
     if any(c.islower() for c in password):
         score += 1
     else:
         feedback.append("Add lowercase letters")
 
-    # Digit
+    # 🔢 Numbers
     if any(c.isdigit() for c in password):
         score += 1
     else:
         feedback.append("Add numbers")
 
-    # Special char
+    # 🔐 Special characters
     if any(c in "!@#$%^&*()" for c in password):
         score += 1
     else:
         feedback.append("Add special characters")
 
-    # Breach check
-    if password.lower() in breached_passwords:
-        breached = True
-        feedback.append(
-            "⚠️ This password is found in real-world data breaches.\n❌ Do NOT use this password."
-        )
-        score = 0  # override score
+    # 🚨 REAL BREACH CHECK
+    if password:
+        breached = check_pwned(password)
 
-    # Percentage
+        if breached:
+            feedback.append(
+                "⚠️ This password has appeared in real-world data breaches. Do NOT use it."
+            )
+            score = 0  # override score
+
+    # 📊 Percentage
     total_checks = 5
     percentage = int((score / total_checks) * 100)
 
-    # Strength
+    # 💪 Strength
     if breached:
         strength = "Weak"
     elif percentage < 40:
@@ -105,7 +116,7 @@ def check_password():
     else:
         strength = "Strong"
 
-    # Response
+    # 📦 Response
     return jsonify({
         "percentage": percentage,
         "strength": strength,
@@ -113,6 +124,9 @@ def check_password():
         "breached": breached
     })
 
-# Run server
+
+# -------------------------------
+# 🚀 RUN SERVER
+# -------------------------------
 if __name__ == "__main__":
     app.run(debug=True)
