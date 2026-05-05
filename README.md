@@ -65,3 +65,16 @@ https://password-checker-fizl.onrender.com/
 ---
 
 ## 📂 Project Structure
+ShieldGuard-Analyzer/
+├── static/              
+│   └── style.css          
+├── templates/            
+│   └── index.html         
+├── screenshots/
+│   └── dashboard.jpg      
+├── app.py                
+├── common_passwords.txt   
+├── requirements.txt      
+├── README.md              
+└── .gitignore            
+
