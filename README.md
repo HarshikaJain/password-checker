@@ -59,7 +59,8 @@ https://password-checker-fizl.onrender.com/
 
 ## 📸 Screenshots
 
-(Add screenshots here later)
+<img width="520" height="714" alt="image" src="https://github.com/user-attachments/assets/a2832473-0e20-41a7-b687-940e69ab175f" />
+
 
 ---
 
