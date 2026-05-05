@@ -1,14 +1,17 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
-import os
+from flask import Flask, render_template, request, jsonify
 import hashlib
 import requests
 import math
+import random
+import string
+from functools import lru_cache
 
 app = Flask(__name__)
 
 # -------------------------------
-# 🔐 REAL BREACH CHECK (HIBP API)
+# 🔐 BREACH CHECK (HIBP API)
 # -------------------------------
+@lru_cache(maxsize=500)
 def check_pwned(password):
     try:
         sha1 = hashlib.sha1(password.encode()).hexdigest().upper()
@@ -16,43 +19,42 @@ def check_pwned(password):
         suffix = sha1[5:]
 
         url = f"https://api.pwnedpasswords.com/range/{prefix}"
-        response = requests.get(url)
+        headers = {"User-Agent": "CyberSmart-App"}
 
-        if response.status_code != 200:
-            return False
+        res = requests.get(url, headers=headers, timeout=5)
 
-        hashes = (line.split(":") for line in response.text.splitlines())
-
-        for h, count in hashes:
+        for line in res.text.splitlines():
+            h, count = line.split(":")
             if h == suffix:
                 return True
 
         return False
-
     except:
         return False
 
 
 # -------------------------------
-# 🧠 ENTROPY CALCULATION
+# 🧠 ENTROPY
 # -------------------------------
 def calculate_entropy(password):
     pool = 0
-
-    if any(c.islower() for c in password):
-        pool += 26
-    if any(c.isupper() for c in password):
-        pool += 26
-    if any(c.isdigit() for c in password):
-        pool += 10
-    if any(c in "!@#$%^&*()" for c in password):
-        pool += 32
+    if any(c.islower() for c in password): pool += 26
+    if any(c.isupper() for c in password): pool += 26
+    if any(c.isdigit() for c in password): pool += 10
+    if any(c in "!@#$%^&*()_+-=[]{}" for c in password): pool += 32
 
     if pool == 0:
         return 0
 
-    entropy = len(password) * math.log2(pool)
-    return int(entropy)
+    return round(len(password) * math.log2(pool), 2)
+
+
+# -------------------------------
+# 🔐 PASSWORD GENERATOR
+# -------------------------------
+def generate_password():
+    chars = string.ascii_letters + string.digits + "!@#$%^&*()"
+    return ''.join(random.choice(chars) for _ in range(12))
 
 
 # -------------------------------
@@ -64,93 +66,73 @@ def home():
 
 
 # -------------------------------
-# 🔍 PASSWORD CHECK
+# 🔍 CHECK
 # -------------------------------
 @app.route("/check", methods=["POST"])
 def check_password():
 
     data = request.get_json()
-
-    if not data or "password" not in data:
-        return jsonify({"error": "No password provided"}), 400
-
     password = data.get("password", "").strip()
 
     score = 0
     feedback = []
-    breached = False
 
-    # 🔢 Length
     if len(password) >= 8:
         score += 1
     else:
-        feedback.append("Password should be at least 8 characters")
+        feedback.append("Minimum 8 characters required")
 
-    # 🔤 Uppercase
     if any(c.isupper() for c in password):
         score += 1
     else:
-        feedback.append("Add uppercase letters")
+        feedback.append("Add uppercase letter")
 
-    # 🔡 Lowercase
     if any(c.islower() for c in password):
         score += 1
     else:
-        feedback.append("Add lowercase letters")
+        feedback.append("Add lowercase letter")
 
-    # 🔢 Numbers
     if any(c.isdigit() for c in password):
         score += 1
     else:
-        feedback.append("Add numbers")
+        feedback.append("Add number")
 
-    # 🔐 Special characters
-    if any(c in "!@#$%^&*()" for c in password):
+    if any(c in "!@#$%^&*" for c in password):
         score += 1
     else:
-        feedback.append("Add special characters")
+        feedback.append("Add special character")
 
-    # 🧠 ENTROPY
     entropy = calculate_entropy(password)
+    breached = check_pwned(password)
 
-    # 🚨 BREACH CHECK
-    if password:
-        breached = check_pwned(password)
-        if breached:
-            feedback.append(
-                "⚠️ This password has appeared in real-world data breaches. Do NOT use it."
-            )
-            score = 0
-
-    # 📊 RULE-BASED %
-    rule_percentage = int((score / 5) * 100)
-
-    # 🧠 ENTROPY-BASED STRENGTH
-    if entropy < 40:
-        entropy_strength = "Weak"
-    elif entropy < 60:
-        entropy_strength = "Medium"
-    else:
-        entropy_strength = "Strong"
-
-    # 🎯 FINAL STRENGTH (combined logic)
     if breached:
+        feedback.append("⚠️ Found in data breaches!")
+        score = 0
+
+    percentage = int((score / 5) * 100)
+
+    if breached or entropy < 40:
         strength = "Weak"
-    elif entropy_strength == "Strong" and rule_percentage > 80:
-        strength = "Strong"
-    elif entropy_strength == "Medium":
+    elif entropy < 60:
         strength = "Medium"
     else:
-        strength = "Weak"
+        strength = "Strong"
 
-    # 📦 RESPONSE
     return jsonify({
-        "percentage": rule_percentage,
+        "percentage": percentage,
         "strength": strength,
         "entropy": entropy,
         "feedback": feedback,
         "breached": breached
     })
+
+
+# -------------------------------
+# 🔐 GENERATE PASSWORD
+# -------------------------------
+@app.route("/generate")
+def generate():
+    return jsonify({"password": generate_password()})
 
 
 # -------------------------------
